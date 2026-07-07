@@ -1,7 +1,18 @@
+# Environment variables
+.env
+.env.local
+
+# OS files
 .DS_Store
 
+# Python
 __pycache__/
+*.pyc
 
+# Virtual environment
+ai/
+venv/
+.env/
 
 # Datasets
 *.csv
