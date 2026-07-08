@@ -6,7 +6,7 @@ from frontend.services import api_client
 
 def _show_backend_error(exc: Exception) -> None:
     if isinstance(exc, requests.ConnectionError):
-        st.error("Could not reach the backend. Is it running on port 8000?")
+        st.error("Could not reach the backend. Please check the deployed API URL in Streamlit secrets or app settings.")
     elif isinstance(exc, requests.HTTPError) and exc.response is not None:
         st.error(f"Backend returned {exc.response.status_code}: {exc.response.text}")
     else:

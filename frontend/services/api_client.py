@@ -7,11 +7,19 @@ import streamlit as st
 DEFAULT_BACKEND_URL = "https://ai-resume-ats-zeta.vercel.app"
 
 
+def _is_local_backend_url(url: str) -> bool:
+    normalized = url.strip().lower().rstrip('/')
+    return normalized.startswith('http://localhost') or normalized.startswith('https://localhost') or normalized.startswith('http://127.0.0.1') or normalized.startswith('https://127.0.0.1')
+
+
 def _backend_url() -> str:
     try:
-        return st.secrets["backend"]["url"]
+        backend_url = st.secrets["backend"]["url"].strip()
+        if backend_url and not _is_local_backend_url(backend_url):
+            return backend_url.rstrip('/')
     except (KeyError, FileNotFoundError):
-        return DEFAULT_BACKEND_URL
+        pass
+    return DEFAULT_BACKEND_URL
 
 
 def _auth_headers(access_token: str) -> Dict[str, str]:
