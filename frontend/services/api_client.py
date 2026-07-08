@@ -4,7 +4,7 @@ import requests
 import streamlit as st
 
 
-DEFAULT_BACKEND_URL = "http://localhost:8000"
+DEFAULT_BACKEND_URL = "https://ai-resume-ats-zeta.vercel.app"
 
 
 def _backend_url() -> str:
