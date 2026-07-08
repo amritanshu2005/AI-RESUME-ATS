@@ -3,18 +3,25 @@ import sys
 import os
 from typing import Any, Callable, Dict, Optional, Tuple, TypeVar
 
-LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
-os.makedirs(LOG_DIR, exist_ok=True)
+LOG_DIR = os.getenv('ATS_LOG_DIR', os.path.join('/tmp', 'ats_resume_scorer'))
+
+try:
+    os.makedirs(LOG_DIR, exist_ok=True)
+except OSError:
+    LOG_DIR = '/tmp'
 
 logger = logging.getLogger('ats_resume_scorer')
 logger.setLevel(logging.INFO)
 
 # Simplified file handler - only basic logs
-file_handler = logging.FileHandler(os.path.join(LOG_DIR, "ats_scorer.log"))
-file_handler.setLevel(logging.INFO)
-file_handler.setFormatter(logging.Formatter(
-    '%(asctime)s - %(levelname)s - %(message)s'
-))
+try:
+    file_handler = logging.FileHandler(os.path.join(LOG_DIR, "ats_scorer.log"))
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(message)s'
+    ))
+except OSError:
+    file_handler = None
 
 # Simplified console handler
 console_handler = logging.StreamHandler(sys.stdout)
@@ -22,8 +29,9 @@ console_handler.setLevel(logging.WARNING)
 console_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
 
 if not logger.handlers:
-    logger.addHandler(file_handler)
     logger.addHandler(console_handler)
+    if file_handler is not None:
+        logger.addHandler(file_handler)
 
 class ATSBaseError(Exception):
     """Simple base class for ATS errors."""
