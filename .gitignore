@@ -1,6 +1,7 @@
 # Environment variables
 .env
 .env.local
+frontend/.streamlit/secret.toml
 
 # OS files
 .DS_Store

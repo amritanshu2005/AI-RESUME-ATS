@@ -15,6 +15,24 @@ logger = logging.getLogger('ats_resume_scorer')
 
 router = APIRouter(prefix='/api/v1', tags=['Analysis'])
 
+
+def _ensure_runtime_models(request: Request):
+    nlp = getattr(request.app.state, 'nlp', None)
+    embedder = getattr(request.app.state, 'embedder', None)
+
+    if nlp is None or embedder is None:
+        from backend.main import _load_embedder, _load_spacy_model
+
+        if nlp is None:
+            nlp = _load_spacy_model()
+            request.app.state.nlp = nlp
+
+        if embedder is None:
+            embedder = _load_embedder()
+            request.app.state.embedder = embedder
+
+    return nlp, embedder
+
 def _clean(text: str) -> str:
     for prefix in ('✅', '🌟', '❌', '⚠️', '📝', '🔴', '🟡', '🟢', '🟠', '👍'):
         text = text.lstrip(prefix)
@@ -29,9 +47,7 @@ async def analyze_resume(
 ):
     warnings: List[str] = []
 
-
-    nlp      = request.app.state.nlp
-    embedder = request.app.state.embedder
+    nlp, embedder = _ensure_runtime_models(request)
 
 
     try:
@@ -124,10 +140,13 @@ async def analyze_resume(
 @router.get('/health')
 async def health_check(request: Request):
     """Health check — confirms models are loaded and the API is ready."""
+    nlp = getattr(request.app.state, 'nlp', None)
+    embedder = getattr(request.app.state, 'embedder', None)
+
     return {
         'status':          'healthy',
-        'nlp_loaded':      request.app.state.nlp is not None,
-        'embedder_loaded': request.app.state.embedder is not None,
+        'nlp_loaded':      nlp is not None,
+        'embedder_loaded': embedder is not None,
     }
 
 @router.get('/history')

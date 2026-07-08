@@ -1,5 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
+import hashlib
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,24 +17,61 @@ from backend.api.routes import router
 
 logger=logging.getLogger('ats_resume_scorer')
 
+
+class _FallbackEmbedder:
+    def __init__(self, dimension: int = 64):
+        self.dimension = dimension
+
+    def encode(self, sentences, convert_to_tensor=False):
+        if isinstance(sentences, str):
+            return self._encode_one(sentences)
+        return [self._encode_one(sentence) for sentence in sentences]
+
+    def _encode_one(self, sentence: str):
+        vector = [0.0] * self.dimension
+        for token in sentence.lower().split():
+            digest = hashlib.sha256(token.encode('utf-8')).digest()
+            index = digest[0] % self.dimension
+            weight = (int.from_bytes(digest[1:5], 'big') % 1000) / 1000.0
+            vector[index] += weight
+        return vector
+
+
+def _load_spacy_model():
+    import spacy
+
+    for model_name in (SPACY_MODEL_PRIMARY, SPACY_MODEL_SECONDARY):
+        try:
+            logger.info(f'Loading spaCy NLP model: {model_name}')
+            nlp = spacy.load(model_name)
+            logger.info(f'Loaded {model_name}')
+            return nlp
+        except Exception as exc:
+            logger.warning(f'Could not load spaCy model {model_name}: {exc}')
+
+    logger.warning('Using blank spaCy English pipeline fallback')
+    return spacy.blank('en')
+
+
+def _load_embedder():
+    try:
+        from sentence_transformers import SentenceTransformer
+
+        logger.info(f'Loading SentenceTransformer: {SENTENCE_TRANSFORMER_MODEL}')
+        embedder = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
+        logger.info(f'Loaded {SENTENCE_TRANSFORMER_MODEL}')
+        return embedder
+    except Exception as exc:
+        logger.warning(f'Could not load SentenceTransformer {SENTENCE_TRANSFORMER_MODEL}: {exc}')
+        logger.warning('Using fallback hashed embedder')
+        return _FallbackEmbedder()
+
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     logger.info('Starting ATS Resume Analyzer API...')
 
-    logger.info(f'Loading spaCy NLP model: {SPACY_MODEL_PRIMARY}')
-    import spacy
-    try:
-        app.state.nlp = spacy.load(SPACY_MODEL_PRIMARY)
-        logger.info(f'Loaded {SPACY_MODEL_PRIMARY}')
-    except OSError:
-        logger.warning(f'{SPACY_MODEL_PRIMARY} not found — falling back to {SPACY_MODEL_SECONDARY}')
-        app.state.nlp = spacy.load(SPACY_MODEL_SECONDARY)
-        logger.info(f'Loaded {SPACY_MODEL_SECONDARY} (fallback)')
-
-    logger.info(f'Loading SentenceTransformer: {SENTENCE_TRANSFORMER_MODEL}')
-    from sentence_transformers import SentenceTransformer
-    app.state.embedder = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
-    logger.info(f'Loaded {SENTENCE_TRANSFORMER_MODEL}')
+    app.state.nlp = _load_spacy_model()
+    app.state.embedder = _load_embedder()
 
     logger.info('All models loaded. API is ready to serve requests.')
 
