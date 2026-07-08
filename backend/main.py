@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 import hashlib
-import os
+from typing import Iterable
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,8 +37,34 @@ class _FallbackEmbedder:
         return vector
 
 
+class _FallbackDoc:
+    def __init__(self, text: str):
+        self.text = text
+        self.ents = []
+
+    @property
+    def noun_chunks(self):
+        return []
+
+    def __iter__(self):
+        return iter(())
+
+
+class _FallbackNLP:
+    def __call__(self, text: str):
+        return _FallbackDoc(text)
+
+
+def _fallback_nlp_factory():
+    return _FallbackNLP()
+
+
 def _load_spacy_model():
-    import spacy
+    try:
+        import spacy
+    except Exception as exc:
+        logger.warning(f'Could not import spaCy: {exc}')
+        return _fallback_nlp_factory()
 
     for model_name in (SPACY_MODEL_PRIMARY, SPACY_MODEL_SECONDARY):
         try:

@@ -1,16 +1,21 @@
-import spacy
-from sentence_transformers import SentenceTransformer
-from typing import Dict, List, Optional
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
 from backend.models.schemas import IssueDetail
 from backend.services.groq_parser import parse_resume, parse_job_description
 from backend.services.jd_matcher import compare_resume_with_jd
 from backend.services.feedback_engine import analyze_issues, generate_issues_summary
 from backend.services.ats_scorer import calculate_overall_score, validate_skills_with_projects
 
+try:
+    from sentence_transformers import SentenceTransformer
+except Exception:
+    SentenceTransformer = Any
+
 
 def analyze_full_resume(
     resume_text: str,
-    nlp: spacy.Language,
+    nlp: Any,
     embedder: SentenceTransformer,
     job_description: Optional[str] = None,
 ) -> Dict:

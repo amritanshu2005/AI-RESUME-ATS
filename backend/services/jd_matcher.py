@@ -1,12 +1,12 @@
-from typing import List, Dict
-import numpy as np
-import spacy
-from sentence_transformers import SentenceTransformer
+from __future__ import annotations
 
-from typing import List, Dict
+from typing import Any, Dict, List
 import numpy as np
-import spacy
-from sentence_transformers import SentenceTransformer
+
+try:
+    from sentence_transformers import SentenceTransformer
+except Exception:
+    SentenceTransformer = Any
 
 from backend.utils.matching import fuzzy_match_keywords, normalize_skill
 from rapidfuzz import fuzz
@@ -40,7 +40,7 @@ def identify_missing_keywords(
 
 
 def analyze_skills_gap(
-    resume_skills: List[str], jd_text: str, nlp: spacy.Language
+    resume_skills: List[str], jd_text: str, nlp: Any
 ) -> List[str]:
     doc       = nlp(jd_text[:5000])
     jd_skills = set()
@@ -102,7 +102,7 @@ def compare_resume_with_jd(
     jd_text: str,
     jd_keywords: List[str],
     embedder: SentenceTransformer,
-    nlp: spacy.Language,
+    nlp: Any,
 ) -> Dict:
     semantic_similarity = calculate_semantic_similarity(resume_text, jd_text, embedder)
     matched_keywords    = identify_matched_keywords(resume_keywords, jd_keywords)

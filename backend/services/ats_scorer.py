@@ -1,8 +1,13 @@
+from __future__ import annotations
+
 import re
-import spacy
 import numpy as np
-from sentence_transformers import SentenceTransformer
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+try:
+    from sentence_transformers import SentenceTransformer
+except Exception:
+    SentenceTransformer = Any
 
 from backend.utils.file_utils import log_warning
 from backend.core.config import SENTENCE_TRANSFORMER_MODEL
@@ -23,7 +28,7 @@ def _tier_score(n: float, tiers:list)-> float:
     return 0.0
 
 #Location/privacy detection
-def detect_location_info(text: str, nlp: spacy.Language) -> Dict:
+def detect_location_info(text: str, nlp: Any) -> Dict:
     locations = []
 
     #method01: spacy NER
